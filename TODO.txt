@@ -1,1 +1,5 @@
-TEMPLATE
+-get rid of git submodules and fetch them from git D:
+  -potato-flow
+  -reflex-basic-host
+    -(though this needs to get moved into its own packag eor osmething)
+  -reflex-todo-undo-mvc-model

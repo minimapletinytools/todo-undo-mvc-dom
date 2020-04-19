@@ -1,3 +1,6 @@
 compiler: ghcjs
 packages:
+  reflex-basic-host/
   frontend/
+  reflex-todo-undo-mvc-model/
+  potato-flow/

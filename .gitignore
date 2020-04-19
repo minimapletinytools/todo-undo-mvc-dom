@@ -1,5 +1,6 @@
 .DS_Store
 *frontend-result
+*ghc-frontend-result
 dist-newstyle
 dist-ghcjs
 cabal.project.local
