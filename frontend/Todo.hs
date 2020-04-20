@@ -20,31 +20,45 @@ import           Text.Read         (readMaybe)
 
 todoWidget :: forall t m. (MonadWidget t m) => m ()
 todoWidget = el "div" $ do
-  elAttr "section" ("class" =: "todoapp") $ mdo
+  elAttr "section" ("class" =: "todoapp") $ do
     mainHeader
-    newTask <- taskEntry
-    justfortest <- holdDyn "" newTask
-    listModifyTasks <- taskList activeFilter tasks
-    (activeFilter, clearCompleted) <- controls tasks
-    dynText justfortest
-    let
-      trc = TodoUndoConfig {
-          _trconfig_new = newTask
-          , _trconfig_clearCompleted = never
-          , _trconfig_undo            = never
-          , _trconfig_redo            = never
-          , _trconfig_tick            = never
-          , _trconfig_untick          = never
-          , _trconfig_remove          = never
-        }
-      tasks :: Dynamic t [Todo] = _tr_todos todoApp
-    todoApp <- holdTodo trc
+    rec
+      newTask <- taskEntry
+      justfortest <- holdDyn "" newTask
+      (activeFilter, clearCompleted) <- controls tasks
+      undoEv <- basicButton "undo"
+      redoEv <- basicButton "redo"
+      dynText justfortest
+      let
+        trc = TodoUndoConfig {
+            _trconfig_new = newTask
+            , _trconfig_clearCompleted = clearCompleted
+            , _trconfig_undo            = undoEv
+            , _trconfig_redo            = redoEv
+            , _trconfig_tick            = toggleEv
+            , _trconfig_untick          = never
+            , _trconfig_remove          = destroyEv
+          }
+        tasks :: Dynamic t [Todo] = _tr_todos todoApp
+      todoApp <- holdTodo trc
+      (toggleEv, destroyEv, modifyEv) <- taskList activeFilter tasks
+      liftIO $ print "finish setting up"
     return ()
   infoFooter
 
 
 
+-- | Extract the 'fst' of a triple.
+fst3 :: (a,b,c) -> a
+fst3 (a,b,c) = a
 
+-- | Extract the 'snd' of a triple.
+snd3 :: (a,b,c) -> b
+snd3 (a,b,c) = b
+
+-- | Extract the final element of a triple.
+thd3 :: (a,b,c) -> c
+thd3 (a,b,c) = c
 
 -- | Strip leading and trailing whitespace from the user's entry, and discard it if nothing remains
 stripDescription :: Text -> Maybe Text
@@ -82,6 +96,18 @@ taskEntry = el "header" $ do
   return $ fmapMaybe stripDescription newValue
 
 
+basicButton
+  :: ( DomBuilder t m
+     , PostBuild t m
+     , MonadHold t m
+     , MonadFix m
+     )
+  => Text
+  -> m (Event t ())
+basicButton label = do
+  let attrs = "class" =: "basic-button"
+  (button, _) <- elAttr' "button" attrs $ text label
+  return $ domEvent Click button
 
 -- | Display the main header
 mainHeader :: DomBuilder t m => m ()
@@ -155,15 +181,17 @@ taskList
      , PostBuild t m
      , MonadHold t m
      , MonadFix m
+     , MonadIO m
      )
   => Dynamic t Filter
   -> Dynamic t [Todo]
   -- TODO add change event
-  -> m (Event t Int, Event t Int)  -- (toggle, remove)
+  -> m (Event t Int, Event t Int, Event t (Int, Text))  -- (toggle, remove, modify)
 taskList activeFilter tasks = elAttr "section" ("class" =: "main") $ do
   let toggleAllState = all isDone <$> tasks
       toggleAllAttrs = ffor tasks $ \t -> "class" =: "toggle-all" <> "name" =: "toggle" <> if null t then "style" =: "visibility:hidden" else mempty
-  toggleAll <- toggleInput toggleAllAttrs toggleAllState
+  -- TODO why does this break???
+  --toggleAll <- toggleInput toggleAllAttrs toggleAllState
   elAttr "label" ("for" =: "toggle-all") $ text "Mark all as complete"
   -- Filter the item list
 
@@ -175,22 +203,25 @@ taskList activeFilter tasks = elAttr "section" ("class" =: "main") $ do
     visibleTasks = fmap (zip [0..]) tasks
 
   -- Hide the item list itself if there are no items
-  let itemListAttrs = ffor visibleTasks $ \t -> mconcat
-        [ "class" =: "todo-list"
-        , if null t then "style" =: "visibility:hidden" else mempty
-        ]
+    itemListAttrs = ffor visibleTasks $ \t -> mconcat
+      [ "class" =: "todo-list"
+      , if null t then "style" =: "visibility:hidden" else mempty
+      ]
+  liftIO $ print "5"
   -- Display the items
-  items <- elDynAttr "ul" itemListAttrs $ simpleList visibleTasks todoItem
+  itemEvs :: Dynamic t [(Event t Int, Event t Int, Event t (Int, Text))]
+    <- elDynAttr "ul" itemListAttrs $ simpleList visibleTasks todoItem
+  let
+    splitItemEvs :: Dynamic t ([Event t Int], [Event t Int], [Event t (Int, Text)]) = fmap unzip3 itemEvs
+    toggleEvs = switchDyn . fmap leftmost . fmap fst3 $ splitItemEvs
+    destroyEvs = switchDyn . fmap leftmost . fmap snd3 $ splitItemEvs
+    modifyEvs = switchDyn . fmap leftmost . fmap thd3 $ splitItemEvs
 
-  -- TODO we assume only one item changes at once ever D:, just do leftmost I guess. You could do the repeatEvent thing if you really wanted to
-  -- Aggregate the changes produced by the elements
-{-
-  let combineItemChanges = fmap (foldl' (.) id) . mergeList . map (\(k, v) -> fmap (flip Map.update k) v) . Map.toList
-      itemChangeEvent = fmap combineItemChanges items
-      itemChanges = switch $ current itemChangeEvent
--}
-  -- TODO
-  return (never, never)
+  liftIO $ print "6"
+
+  -- we assume only one item changes at once ever D:, just do leftmost I guess
+  -- you could do the repeatEvent thing if you really wanted to
+  return (toggleEvs, destroyEvs, modifyEvs)
 
 toggleInput
   :: ( DomBuilder t m
@@ -247,10 +278,11 @@ todoItem
      , PostBuild t m
      )
   => Dynamic t (Int, Todo)
-  -> m (Event t (), Event t (), Event t (Int, Text)) -- ^ (toggle, destroy, modify)
+  -> m (Event t Int, Event t Int, Event t (Int, Text)) -- ^ (toggle, destroy, modify)
 todoItem todoWithId = mdo
   let
     todo = fmap snd todoWithId
+    todoId = current $ fmap fst todoWithId
   description <- holdUniqDyn $ fmap TODO.description todo
   -- Construct the attributes for our element
   let attrs = ffor2 todo editing' $ \t e -> Map.singleton "class" $ T.unwords $ concat
@@ -272,7 +304,7 @@ todoItem todoWithId = mdo
           ]
         -- Cancel editing (without changing the item's description) when the user presses escape in the textbox
         cancelEdit = keypress Escape editBox
-        modifyEv = attachWith (\(i,_) d -> (i,d)) (current todoWithId) setDescription
+        modifyEv = attachWith (\i d -> (i,d)) todoId setDescription
     -- Set focus on the edit box when we enter edit mode
 --        postGui <- askPostGui
 --        performEvent_ $ fmap (const $ liftIO $ void $ forkIO $ threadDelay 1000 >> postGui (liftIO $ focus $ _textInput_element editBox)) startEditing -- Without the delay, the focus doesn't take effect because the element hasn't become unhidden yet; we need to use postGui to ensure that this is threadsafe when built with GTK
@@ -281,7 +313,7 @@ todoItem todoWithId = mdo
                                         , fmap (const False) setDescription
                                         , fmap (const False) cancelEdit
                                         ]
-    return (editing, toggleEv, destroyEv, modifyEv)
+    return (editing, tag todoId toggleEv, tag todoId destroyEv, modifyEv)
   -- Return an event that fires whenever we change ourselves
   return (toggleEv', destroyEv', modifyEv')
 
