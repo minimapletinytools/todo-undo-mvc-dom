@@ -29,7 +29,7 @@ todoWidget = el "div" $ do
       let undoredoattrs = constDyn ("class" =: "footer")
       (undoEv, redoEv) <- elDynAttr "footer" undoredoattrs $ do
         -- TODO only show if there are tasks to undo/redo
-        elAttr "ul" ("class" =: "filters") $ do
+        elAttr "ul" ("class" =: "undoredo") $ do
           let
             basicButton label = do
               (button, _) <- elAttr' "a" mempty $ text label
@@ -48,7 +48,7 @@ todoWidget = el "div" $ do
             , _trconfig_remove          = destroyEv
             -- for whatever reason, modifyEv triggers a whole bunch of times
             -- however todo-undo-mvc-model will drop modifies that don't actually do anything so no harm done
-            , _trconfig_modify          = traceEvent "modify" $ modifyEv
+            , _trconfig_modify          = modifyEv
           }
         tasks :: Dynamic t [Todo] = _tr_todos todoApp
       todoApp <- holdTodo trc

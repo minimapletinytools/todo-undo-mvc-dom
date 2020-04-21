@@ -319,6 +319,33 @@ body {
 	border-color: rgba(175, 47, 47, 0.2);
 }
 
+.undoredo {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	position: absolute;
+	right: 0;
+	left: 0;
+}
+
+.undoredo li {
+	display: inline;
+}
+
+.undoredo li a {
+	color: inherit;
+	margin: 3px;
+	padding: 3px 7px;
+	text-decoration: none;
+	border: 1px solid transparent;
+	border-radius: 3px;
+}
+
+.undoredo li a:hover {
+	text-decoration: underline;
+}
+
+
 .clear-completed,
 html .clear-completed:active {
 	float: right;
@@ -331,21 +358,6 @@ html .clear-completed:active {
 .clear-completed:hover {
 	text-decoration: underline;
 }
-
-
-.basic-button,
-html .clear-completed:active {
-	float: right;
-	position: relative;
-	line-height: 20px;
-	text-decoration: none;
-	cursor: pointer;
-}
-
-.basic-button:hover {
-	text-decoration: underline;
-}
-
 
 .info {
 	margin: 65px auto 0;
@@ -390,6 +402,10 @@ html .clear-completed:active {
 	}
 
 	.filters {
+		bottom: 10px;
+	}
+
+	.undoredo {
 		bottom: 10px;
 	}
 }
