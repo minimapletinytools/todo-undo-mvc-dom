@@ -46,6 +46,9 @@ todoWidget = el "div" $ do
             , _trconfig_redo            = redoEv
             , _trconfig_tick            = toggleEv
             , _trconfig_remove          = destroyEv
+            -- for whatever reason, modifyEv triggers a whole bunch of times
+            -- however todo-undo-mvc-model will drop modifies that don't actually do anything so no harm done
+            , _trconfig_modify          = traceEvent "modify" $ modifyEv
           }
         tasks :: Dynamic t [Todo] = _tr_todos todoApp
       todoApp <- holdTodo trc
