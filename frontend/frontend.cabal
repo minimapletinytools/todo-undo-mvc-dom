@@ -21,6 +21,8 @@ executable frontend
   -- other-modules:
   -- other-extensions:
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  -- -prof "-with-rtsopts=+RTS -hd"
+
   build-depends:       base >=4.12 && <4.13
     , relude
     , reflex

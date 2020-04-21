@@ -31,7 +31,6 @@ memtestWidget = el "div" $ do
           , _trconfig_undo            = undoev
           , _trconfig_redo            = never
           , _trconfig_tick            = never
-          , _trconfig_untick          = never
           , _trconfig_remove          = never
         }
       tasks :: Dynamic t [Todo] = _tr_todos todoApp

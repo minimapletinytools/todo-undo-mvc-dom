@@ -45,7 +45,6 @@ todoWidget = el "div" $ do
             , _trconfig_undo            = undoEv
             , _trconfig_redo            = redoEv
             , _trconfig_tick            = toggleEv
-            , _trconfig_untick          = never
             , _trconfig_remove          = destroyEv
           }
         tasks :: Dynamic t [Todo] = _tr_todos todoApp
