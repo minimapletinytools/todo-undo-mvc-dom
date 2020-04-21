@@ -1,4 +1,4 @@
--- a lot of code copied from https://github.com/reflex-frp/reflex-todomvc
+-- this is cobbled together from https://github.com/reflex-frp/reflex-todomvc
 
 {-# LANGUAGE RecursiveDo #-}
 module Todo (
@@ -24,10 +24,20 @@ todoWidget = el "div" $ do
     mainHeader
     rec
       newTask <- taskEntry
-      (activeFilter, clearCompleted) <- controls tasks
-      undoEv <- basicButton "undo"
-      redoEv <- basicButton "redo"
-      dynText (fmap show activeFilter)
+
+      -- undo/redo buttons
+      let undoredoattrs = constDyn ("class" =: "footer")
+      (undoEv, redoEv) <- elDynAttr "footer" undoredoattrs $ do
+        -- TODO only show if there are tasks to undo/redo
+        elAttr "ul" ("class" =: "filters") $ do
+          let
+            basicButton label = do
+              (button, _) <- elAttr' "a" mempty $ text label
+              return $ domEvent Click button
+          undoEv' <- el "li" $ basicButton "undo"
+          redoEv' <- el "li" $ basicButton "redo"
+          return (undoEv', redoEv')
+
       let
         trc = TodoUndoConfig {
             _trconfig_new = newTask
@@ -40,7 +50,12 @@ todoWidget = el "div" $ do
           }
         tasks :: Dynamic t [Todo] = _tr_todos todoApp
       todoApp <- holdTodo trc
-      (toggleEv, destroyEv, modifyEv) <- taskList (traceDyn "filter" activeFilter) tasks
+      (toggleEv, destroyEv, modifyEv) <- taskList activeFilter tasks
+      (activeFilter, clearCompleted) <- controls tasks
+
+
+
+      --dynText (fmap show activeFilter)
       liftIO $ print "finish setting up"
     return ()
   infoFooter
@@ -95,19 +110,6 @@ taskEntry = el "header" $ do
   return $ fmapMaybe stripDescription newValue
 
 
-basicButton
-  :: ( DomBuilder t m
-     , PostBuild t m
-     , MonadHold t m
-     , MonadFix m
-     )
-  => Text
-  -> m (Event t ())
-basicButton label = do
-  let attrs = "class" =: "toggle-all"
-  (button, _) <- elAttr' "button" attrs $ text label
-  return $ domEvent Click button
-
 -- | Display the main header
 mainHeader :: DomBuilder t m => m ()
 mainHeader = el "h1" $ text "todos"
@@ -140,6 +142,8 @@ buildActiveFilter = elAttr "ul" ("class" =: "filters") $ do
       completedButton <- filterButton Completed
       let setFilter = leftmost [allButton, activeButton, completedButton]
   return activeFilter
+
+
 
 -- | Display the control footer; return the user's currently-selected filter and an event that fires when the user chooses to clear all completed events
 controls
@@ -187,26 +191,22 @@ taskList
   -- TODO add change event
   -> m (Event t Int, Event t Int, Event t (Int, Text))  -- (toggle, remove, modify)
 taskList activeFilter tasks = elAttr "section" ("class" =: "main") $ do
-  let toggleAllState = all isDone <$> tasks
-      toggleAllAttrs = ffor tasks $ \t -> "class" =: "toggle-all" <> "name" =: "toggle" <> if null t then "style" =: "visibility:hidden" else mempty
-  -- TODO why does this break???
+  -- todo-undo-mvc-model currently doesn't support "complete all" functionality
+  --let toggleAllState = all isDone <$> tasks
+  --    toggleAllAttrs = ffor tasks $ \t -> "class" =: "toggle-all" <> "name" =: "toggle" <> if null t then "style" =: "visibility:hidden" else mempty
+  -- this causes program to hang for some reason TODO figure out why
   --toggleAll <- toggleInput toggleAllAttrs toggleAllState
-  elAttr "label" ("for" =: "toggle-all") $ text "Mark all as complete"
-  -- Filter the item list
+  --elAttr "label" ("for" =: "toggle-all") $ text "Mark all as complete"
 
-  --let
   let
-    -- TODO need to zip with index too
     visibleTasks :: Dynamic t [(Int, Todo)]
-    --visibleTasks = zipDynWith (Map.filter . satisfiesFilter) activeFilter tasks
-    visibleTasks = fmap (zip [0..]) tasks
+    visibleTasks = zipDynWith (\af xs -> filter (\(_,x) -> satisfiesFilter af x) xs) activeFilter $ fmap (zip [0..]) tasks
 
   -- Hide the item list itself if there are no items
     itemListAttrs = ffor visibleTasks $ \t -> mconcat
       [ "class" =: "todo-list"
       , if null t then "style" =: "visibility:hidden" else mempty
       ]
-  liftIO $ print "5"
   -- Display the items
   itemEvs :: Dynamic t [(Event t Int, Event t Int, Event t (Int, Text))]
     <- elDynAttr "ul" itemListAttrs $ simpleList visibleTasks todoItem
@@ -216,7 +216,6 @@ taskList activeFilter tasks = elAttr "section" ("class" =: "main") $ do
     destroyEvs = switchDyn . fmap leftmost . fmap snd3 $ splitItemEvs
     modifyEvs = switchDyn . fmap leftmost . fmap thd3 $ splitItemEvs
 
-  liftIO $ print "6"
 
   -- we assume only one item changes at once ever D:, just do leftmost I guess
   -- you could do the repeatEvent thing if you really wanted to
@@ -256,7 +255,14 @@ buildCompletedCheckbox
   -> m (Event t (), Event t (), Event t ()) -- ^ (toggle, clear, modify)
 buildCompletedCheckbox todo description = elAttr "div" ("class" =: "view") $ do
   -- Display the todo item's completed status, and allow it to be set
-  completed <- holdUniqDyn $ fmap isDone todo
+
+  -- this causes a glitch where if under "active" filter, when you complete a task
+  -- the following task will be visually marked as done (but not actually done)
+  -- a little unclear why but uniqDyn here + simpleList is causing some event
+  -- not to trigger
+  --completed <- holdUniqDyn $ fmap isDone todo
+  completed <- return $ fmap isDone todo
+
   checkboxClicked <- toggleInput (constDyn mempty) completed
   let setCompleted = fmap (const ()) $ checkboxClicked
   -- Display the todo item's name for viewing purposes

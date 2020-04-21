@@ -332,6 +332,21 @@ html .clear-completed:active {
 	text-decoration: underline;
 }
 
+
+.basic-button,
+html .clear-completed:active {
+	float: right;
+	position: relative;
+	line-height: 20px;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.basic-button:hover {
+	text-decoration: underline;
+}
+
+
 .info {
 	margin: 65px auto 0;
 	color: #4d4d4d;
