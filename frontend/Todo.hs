@@ -24,11 +24,10 @@ todoWidget = el "div" $ do
     mainHeader
     rec
       newTask <- taskEntry
-      justfortest <- holdDyn "" newTask
       (activeFilter, clearCompleted) <- controls tasks
       undoEv <- basicButton "undo"
       redoEv <- basicButton "redo"
-      dynText justfortest
+      dynText (fmap show activeFilter)
       let
         trc = TodoUndoConfig {
             _trconfig_new = newTask
@@ -41,7 +40,7 @@ todoWidget = el "div" $ do
           }
         tasks :: Dynamic t [Todo] = _tr_todos todoApp
       todoApp <- holdTodo trc
-      (toggleEv, destroyEv, modifyEv) <- taskList activeFilter tasks
+      (toggleEv, destroyEv, modifyEv) <- taskList (traceDyn "filter" activeFilter) tasks
       liftIO $ print "finish setting up"
     return ()
   infoFooter
@@ -105,7 +104,7 @@ basicButton
   => Text
   -> m (Event t ())
 basicButton label = do
-  let attrs = "class" =: "basic-button"
+  let attrs = "class" =: "toggle-all"
   (button, _) <- elAttr' "button" attrs $ text label
   return $ domEvent Click button
 

@@ -4,9 +4,12 @@
 [submodule "reflex-todo-undo-mvc-model"]
 	path = reflex-todo-undo-mvc-model
 	url = git@github.com:pdlla/reflex-todo-undo-mvc-model.git
-[submodule "potato_flow"]
-	path = potato_flow
-	url = git@github.com:pdlla/potato_flow.git
-[submodule "reflex-basic-host"]
-	path = reflex-basic-host
-	url = git@github.com:pdlla/reflex-basic-host.git
+[submodule "reflex-potatoes"]
+	path = reflex-potatoes
+	url = https://github.com/pdlla/reflex-potatoes
+[submodule "reflex-test-host"]
+	path = reflex-test-host
+	url = git@github.com:pdlla/reflex-test-host.git
+[submodule "reflex-dynamic-containers"]
+	path = reflex-dynamic-containers
+	url = git@github.com:pdlla/reflex-dynamic-containers.git

@@ -19,8 +19,8 @@ main = do
   let
     -- TODO figure out how to do this without embedding
     -- TODO get a better potato.css
-    css = $(embedStringFile "potato.css")
-  mainWidget memtestWidget
+      css = $(embedFile "potato.css")
+  --mainWidget memtestWidget
   --mainWidget todoWidget
-  --mainWidgetWithCss css $ todoWidget
+  mainWidgetWithCss css $ todoWidget
   --mainWidgetWithCss css $ do exampleWidget
