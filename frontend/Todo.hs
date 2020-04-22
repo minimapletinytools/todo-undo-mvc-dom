@@ -1,6 +1,7 @@
 -- this is cobbled together from https://github.com/reflex-frp/reflex-todomvc
 
 {-# LANGUAGE RecursiveDo #-}
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 module Todo (
   todoWidget
 ) where
@@ -16,7 +17,6 @@ import qualified TodoUndo          as TODO (description)
 import           Control.Monad.Fix (MonadFix)
 import qualified Data.Map          as Map
 import qualified Data.Text         as T
-import           Text.Read         (readMaybe)
 
 todoWidget :: forall t m. (MonadWidget t m) => m ()
 todoWidget = el "div" $ do
@@ -32,8 +32,8 @@ todoWidget = el "div" $ do
         elAttr "ul" ("class" =: "undoredo") $ do
           let
             basicButton label = do
-              (button, _) <- elAttr' "a" mempty $ text label
-              return $ domEvent Click button
+              (but, _) <- elAttr' "a" mempty $ text label
+              return $ domEvent Click but
           undoEv' <- el "li" $ basicButton "undo"
           redoEv' <- el "li" $ basicButton "redo"
           return (undoEv', redoEv')
@@ -54,11 +54,6 @@ todoWidget = el "div" $ do
       todoApp <- holdTodo trc
       (toggleEv, destroyEv, modifyEv) <- taskList activeFilter tasks
       (activeFilter, clearCompleted) <- controls tasks
-
-
-
-      --dynText (fmap show activeFilter)
-      liftIO $ print "finish setting up"
     return ()
   infoFooter
 
@@ -66,15 +61,15 @@ todoWidget = el "div" $ do
 
 -- | Extract the 'fst' of a triple.
 fst3 :: (a,b,c) -> a
-fst3 (a,b,c) = a
+fst3 (a,_,_) = a
 
 -- | Extract the 'snd' of a triple.
 snd3 :: (a,b,c) -> b
-snd3 (a,b,c) = b
+snd3 (_,b,_) = b
 
 -- | Extract the final element of a triple.
 thd3 :: (a,b,c) -> c
-thd3 (a,b,c) = c
+thd3 (_,_,c) = c
 
 -- | Strip leading and trailing whitespace from the user's entry, and discard it if nothing remains
 stripDescription :: Text -> Maybe Text

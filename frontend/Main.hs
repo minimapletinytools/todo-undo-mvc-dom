@@ -5,22 +5,13 @@ module Main where
 
 import           Relude
 
-import           Reflex
 import           Reflex.Dom
 
 import           Data.FileEmbed
 
-import           Example
-import           Memtest
 import           Todo
 
 main :: IO ()
 main = do
-  let
-    -- TODO figure out how to do this without embedding
-    -- TODO get a better potato.css
-      css = $(embedFile "potato.css")
-  --mainWidget memtestWidget
-  --mainWidget todoWidget
+  let css = $(embedFile "potato.css")
   mainWidgetWithCss css $ todoWidget
-  --mainWidgetWithCss css $ do exampleWidget

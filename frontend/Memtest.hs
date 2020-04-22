@@ -1,10 +1,12 @@
--- a lot of code copied from https://github.com/reflex-frp/reflex-todomvc
-
+-- TODO DELETE
 {-# LANGUAGE RecursiveDo #-}
-module Memtest (
-  memtestWidget
-) where
+module Memtest
+  (
+  --memtestWidget
+  )
+where
 
+{-
 import           Relude            hiding (All)
 
 import           Reflex
@@ -38,8 +40,6 @@ memtestWidget = el "div" $ do
     liftIO $ print "finish setting up"
   return ()
 
-
-
 basicButton
   :: ( DomBuilder t m
      , PostBuild t m
@@ -52,3 +52,4 @@ basicButton label = do
   let attrs = "class" =: "basic-button"
   (button, _) <- elAttr' "button" attrs $ text label
   return $ domEvent Click button
+-}
